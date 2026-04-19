@@ -11,13 +11,7 @@ from nonogram.solver import SolveTimeoutError, solve_nonogram
 from nonogram.validator import is_valid_unique_puzzle
 
 
-DENSITY_BY_SIZE = {
-    5: 0.48,
-    10: 0.44,
-    15: 0.41,
-    20: 0.39,
-    30: 0.36,
-}
+DEFAULT_DENSITY = 0.5
 
 MAX_ATTEMPTS = 5000
 TIMEOUT_SECONDS = 10.0
@@ -26,9 +20,8 @@ PER_PUZZLE_SOLVE_TIMEOUT_SECONDS = 5.0
 
 def generate_solution_board(size: int, seed: int) -> list[list[int]]:
     rng = build_rng(seed, size, GENERATOR_VERSION)
-    density = DENSITY_BY_SIZE[size]
     return [
-        [1 if rng.random() < density else 0 for _ in range(size)]
+        [1 if rng.random() < DEFAULT_DENSITY else 0 for _ in range(size)]
         for _ in range(size)
     ]
 
