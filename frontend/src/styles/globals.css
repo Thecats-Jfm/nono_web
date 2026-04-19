@@ -192,8 +192,8 @@ select {
 .corner-cell,
 .clue,
 .cell {
-  min-width: 34px;
-  min-height: 34px;
+  min-width: var(--cell-size, 34px);
+  min-height: var(--cell-size, 34px);
 }
 
 .corner-cell,
@@ -210,11 +210,11 @@ select {
 
 .clue-row {
   justify-content: flex-end;
-  min-width: 110px;
+  min-width: max(110px, calc(var(--cell-size, 34px) * 3.1));
 }
 
 .clue-col {
-  min-height: 110px;
+  min-height: max(110px, calc(var(--cell-size, 34px) * 3.1));
 }
 
 .clue-stack {
@@ -231,7 +231,7 @@ select {
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
-  min-height: 96px;
+  min-height: calc(var(--cell-size, 34px) * 2.7);
 }
 
 .clue-chip {
@@ -247,6 +247,21 @@ select {
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.clue-complete {
+  border-color: rgba(98, 149, 92, 0.45);
+  background: linear-gradient(180deg, rgba(245, 255, 242, 0.96), rgba(231, 246, 226, 0.94));
+}
+
+.clue-chip-complete {
+  background: rgba(98, 149, 92, 0.16);
+  color: #2f6129;
+}
+
+.clue-empty-dot-complete {
+  background: rgba(98, 149, 92, 0.7);
 }
 
 .clue-empty-dot {
@@ -260,6 +275,8 @@ select {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: var(--cell-size, 34px);
+  aspect-ratio: 1;
   border: 1px solid var(--grid);
   background: var(--empty);
   border-radius: 8px;
@@ -291,7 +308,7 @@ select {
 }
 
 .cell-cross {
-  font-size: 30px;
+  font-size: clamp(28px, calc(var(--cell-size, 34px) * 0.92), 34px);
   line-height: 1;
   font-weight: 800;
   transform: translateY(-1px);

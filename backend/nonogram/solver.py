@@ -21,83 +21,86 @@ class SolveResult(NamedTuple):
     max_depth: int
 
 
+def compute_line_clues(line: list[int] | tuple[int, ...]) -> tuple[int, ...]:
+    values = [int(value) for value in line]
+    runs: list[int] = []
+    current = 0
+    for value in values:
+        if value == 1:
+            current += 1
+            continue
+        if current > 0:
+            runs.append(current)
+            current = 0
+    if current > 0:
+        runs.append(current)
+    return tuple(runs)
+
+
 @lru_cache(maxsize=None)
-def generate_line_patterns(length: int, clues: Clue) -> tuple[Line, ...]:
-    if not clues:
-        return (tuple(0 for _ in range(length)),)
+def line_patterns_for_clue(clue: Clue, line_length: int) -> tuple[int, ...]:
+    if not clue:
+        return (0,)
 
-    results: list[Line] = []
-    clue_total = sum(clues)
-    min_spaces = len(clues) - 1
-    max_start = length - clue_total - min_spaces
+    results: list[int] = []
 
-    def build(clue_index: int, position: int, current: list[int]) -> None:
-        if clue_index == len(clues):
-            results.append(tuple(current + [0] * (length - len(current))))
+    def build(clue_index: int, position: int, pattern: int) -> None:
+        if clue_index == len(clue):
+            results.append(pattern)
             return
 
-        remaining_clues = clues[clue_index:]
+        remaining_clues = clue[clue_index:]
         remaining_total = sum(remaining_clues)
         remaining_spaces = len(remaining_clues) - 1
-        last_start = length - remaining_total - remaining_spaces
+        last_start = line_length - remaining_total - remaining_spaces
 
         for start in range(position, last_start + 1):
-            prefix = current + [0] * (start - len(current)) + [1] * clues[clue_index]
-            next_position = len(prefix)
-            if clue_index < len(clues) - 1:
-                prefix.append(0)
-                next_position += 1
-            build(clue_index + 1, next_position, prefix)
+            next_pattern = pattern
+            block_length = clue[clue_index]
+            for bit_index in range(start, start + block_length):
+                shift = line_length - 1 - bit_index
+                next_pattern |= 1 << shift
 
-    build(0, 0, [])
+            next_position = start + block_length
+            if clue_index < len(clue) - 1:
+                next_position += 1
+            build(clue_index + 1, next_position, next_pattern)
+
+    build(0, 0, 0)
     return tuple(results)
 
 
 @lru_cache(maxsize=None)
-def prefix_is_feasible(prefix: Line, clues: Clue, total_length: int) -> bool:
-    prefix_length = len(prefix)
+def generate_line_patterns(length: int, clues: Clue) -> tuple[Line, ...]:
+    patterns = tuple(
+        tuple((pattern >> shift) & 1 for shift in range(length - 1, -1, -1))
+        for pattern in line_patterns_for_clue(clues, length)
+    )
+    return tuple(sorted(patterns, reverse=True))
 
-    @lru_cache(maxsize=None)
-    def dp(position: int, clue_index: int, run_length: int) -> bool:
-        if position == prefix_length:
-            return can_finish(clue_index, run_length, total_length - prefix_length)
 
-        value = prefix[position]
+def prefix_value(pattern: int, *, prefix_len: int, line_length: int) -> int:
+    if prefix_len <= 0:
+        return 0
+    shift = line_length - prefix_len
+    return int(pattern >> shift)
 
-        if value == 1:
-            if clue_index >= len(clues):
-                return False
-            next_run = run_length + 1
-            if next_run > clues[clue_index]:
-                return False
-            return dp(position + 1, clue_index, next_run)
 
-        if run_length > 0:
-            if clue_index >= len(clues) or run_length != clues[clue_index]:
-                return False
-            return dp(position + 1, clue_index + 1, 0)
-
-        return dp(position + 1, clue_index, 0)
-
-    @lru_cache(maxsize=None)
-    def can_finish(clue_index: int, run_length: int, cells_left: int) -> bool:
-        if cells_left < 0:
-            return False
-
-        if run_length > 0:
-            if clue_index >= len(clues) or run_length > clues[clue_index]:
-                return False
-            remaining = (clues[clue_index] - run_length,) + clues[clue_index + 1 :]
-        else:
-            remaining = clues[clue_index:]
-
-        if not remaining:
-            return True
-
-        min_required = sum(remaining) + max(0, len(remaining) - 1)
-        return min_required <= cells_left
-
-    return dp(0, 0, 0)
+@lru_cache(maxsize=None)
+def build_column_prefix_sets(col_clues: tuple[Clue, ...], line_length: int) -> tuple[dict[int, set[int]], ...]:
+    prefix_sets: list[dict[int, set[int]]] = []
+    for clue in col_clues:
+        patterns = line_patterns_for_clue(clue, line_length)
+        prefix_sets.append(
+            {
+                prefix_len: {
+                    prefix_value(pattern, prefix_len=prefix_len, line_length=line_length)
+                    for pattern in patterns
+                }
+                for prefix_len in range(line_length + 1)
+            }
+        )
+    return tuple(prefix_sets)
 
 
 def solve_nonogram(
@@ -106,46 +109,50 @@ def solve_nonogram(
     col_clues: list[list[int]],
     deadline: float | None = None,
 ) -> SolveResult:
-    row_patterns = [
-        generate_line_patterns(size, tuple(clues))
-        for clues in row_clues
-    ]
-    col_clue_tuples = [tuple(clues) for clues in col_clues]
+    row_clue_tuples = tuple(tuple(clues) for clues in row_clues)
+    col_clue_tuples = tuple(tuple(clues) for clues in col_clues)
+
+    if deadline is not None and time.perf_counter() >= deadline:
+        raise SolveTimeoutError
+    row_candidates = [line_patterns_for_clue(clue, size) for clue in row_clue_tuples]
+
+    if deadline is not None and time.perf_counter() >= deadline:
+        raise SolveTimeoutError
+    col_prefix_sets = build_column_prefix_sets(col_clue_tuples, size)
 
     start = time.perf_counter()
     nodes_visited = 0
     max_depth = 0
     solutions_found = 0
 
-    def search(depth: int, column_prefixes: tuple[Line, ...]) -> None:
+    def search(row_index: int, prefixes: list[int]) -> None:
         nonlocal nodes_visited, max_depth, solutions_found
         if deadline is not None and time.perf_counter() >= deadline:
             raise SolveTimeoutError
         if solutions_found >= 2:
             return
-        max_depth = max(max_depth, depth)
-        if depth == size:
+        max_depth = max(max_depth, row_index)
+        if row_index >= size:
             solutions_found += 1
             return
 
-        row_index = depth
-        for pattern in row_patterns[row_index]:
+        for row_pattern in row_candidates[row_index]:
             nodes_visited += 1
-            next_prefixes: list[Line] = []
+            next_prefixes: list[int] = []
             valid = True
-            for col_index, cell in enumerate(pattern):
-                next_prefix = column_prefixes[col_index] + (cell,)
-                if not prefix_is_feasible(next_prefix, col_clue_tuples[col_index], size):
+            for col_index in range(size):
+                bit = int((row_pattern >> (size - 1 - col_index)) & 1)
+                next_prefix = (prefixes[col_index] << 1) | bit
+                if next_prefix not in col_prefix_sets[col_index][row_index + 1]:
                     valid = False
                     break
                 next_prefixes.append(next_prefix)
             if valid:
-                search(depth + 1, tuple(next_prefixes))
+                search(row_index + 1, next_prefixes)
                 if solutions_found >= 2:
                     return
 
-    initial_prefixes = tuple(tuple() for _ in range(size))
-    search(0, initial_prefixes)
+    search(0, [0] * size)
     elapsed_ms = (time.perf_counter() - start) * 1000
 
     return SolveResult(

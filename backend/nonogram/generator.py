@@ -14,8 +14,8 @@ from nonogram.validator import is_valid_unique_puzzle
 DEFAULT_DENSITY = 0.5
 
 MAX_ATTEMPTS = 5000
-TIMEOUT_SECONDS = 10.0
-PER_PUZZLE_SOLVE_TIMEOUT_SECONDS = 5.0
+TIMEOUT_SECONDS = 60.0
+PER_PUZZLE_SOLVE_TIMEOUT_SECONDS = 60.0
 
 
 def generate_solution_board(size: int, seed: int) -> list[list[int]]:
