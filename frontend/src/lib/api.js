@@ -1,13 +1,17 @@
-const API_BASE = "http://127.0.0.1:8000";
-
 export async function generatePuzzle(seed, size) {
-  const response = await fetch(`${API_BASE}/api/puzzles/generate`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ seed, size }),
-  });
+  let response;
+
+  try {
+    response = await fetch("/api/puzzles/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ seed, size }),
+    });
+  } catch (error) {
+    throw new Error("无法连接后端服务，请确认 uvicorn 正在 8000 端口运行。");
+  }
 
   if (!response.ok) {
     const message = await response.text();
