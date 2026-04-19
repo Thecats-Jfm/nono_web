@@ -117,17 +117,18 @@ def solve_nonogram(
     max_depth = 0
     solutions_found = 0
 
-    def search(row_index: int, column_prefixes: tuple[Line, ...]) -> None:
+    def search(depth: int, column_prefixes: tuple[Line, ...]) -> None:
         nonlocal nodes_visited, max_depth, solutions_found
         if deadline is not None and time.perf_counter() >= deadline:
             raise SolveTimeoutError
         if solutions_found >= 2:
             return
-        max_depth = max(max_depth, row_index)
-        if row_index == size:
+        max_depth = max(max_depth, depth)
+        if depth == size:
             solutions_found += 1
             return
 
+        row_index = depth
         for pattern in row_patterns[row_index]:
             nodes_visited += 1
             next_prefixes: list[Line] = []
@@ -139,7 +140,7 @@ def solve_nonogram(
                     break
                 next_prefixes.append(next_prefix)
             if valid:
-                search(row_index + 1, tuple(next_prefixes))
+                search(depth + 1, tuple(next_prefixes))
                 if solutions_found >= 2:
                     return
 
