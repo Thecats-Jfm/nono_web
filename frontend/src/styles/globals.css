@@ -7,6 +7,7 @@
   --accent: #b85c38;
   --border: #d9c7b6;
   --grid: #ead8c6;
+  --grid-strong: #c8a98f;
   --filled: #2c241d;
   --empty: #fff9f1;
   --cross: #b85c38;
@@ -135,6 +136,8 @@ select {
 .success {
   border-color: #7aa374;
   color: #305b2c;
+  background:
+    linear-gradient(180deg, rgba(248, 255, 245, 0.96), rgba(235, 247, 231, 0.9));
 }
 
 .progress {
@@ -146,8 +149,37 @@ select {
 }
 
 .board-shell {
+  position: relative;
   overflow: auto;
   padding-bottom: 10px;
+}
+
+.board-shell-solved::after {
+  content: "";
+  position: absolute;
+  inset: 8px 0 auto 0;
+  height: 140px;
+  pointer-events: none;
+  background: radial-gradient(circle at top center, rgba(122, 163, 116, 0.18), transparent 65%);
+}
+
+.board-badge {
+  position: sticky;
+  top: 8px;
+  z-index: 2;
+  width: max-content;
+  margin: 0 auto 12px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(122, 163, 116, 0.45);
+  background: rgba(248, 255, 245, 0.95);
+  color: #305b2c;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow: 0 10px 24px rgba(72, 110, 65, 0.12);
+  animation: solved-pop 260ms ease-out;
 }
 
 .board-layout {
@@ -169,31 +201,75 @@ select {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 8px;
-  border-radius: 10px;
-  background: rgba(255, 251, 246, 0.9);
+  padding: 6px 8px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.96), rgba(250, 241, 231, 0.92));
   border: 1px solid var(--border);
-  white-space: pre-wrap;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
 .clue-row {
   justify-content: flex-end;
-  min-width: 94px;
-  font-size: 14px;
+  min-width: 110px;
 }
 
 .clue-col {
-  writing-mode: vertical-rl;
-  text-orientation: upright;
-  min-height: 94px;
-  font-size: 14px;
+  min-height: 110px;
+}
+
+.clue-stack {
+  display: flex;
+  gap: 4px;
+}
+
+.clue-stack-row {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.clue-stack-col {
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 96px;
+}
+
+.clue-chip {
+  min-width: 24px;
+  min-height: 24px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(184, 92, 56, 0.1);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.clue-empty-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(104, 88, 74, 0.35);
 }
 
 .cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--grid);
   background: var(--empty);
   border-radius: 8px;
   font-size: 24px;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.cell:hover {
+  transform: translateY(-1px);
+  border-color: #d2b79f;
 }
 
 .cell-filled {
@@ -201,7 +277,53 @@ select {
   border-color: var(--filled);
 }
 
+.board-shell-solved .cell-filled {
+  background: linear-gradient(180deg, #2c241d 0%, #3a2f26 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 248, 240, 0.08);
+}
+
+.board-shell-solved .cell-empty {
+  background: linear-gradient(180deg, #fffdf8 0%, #faf2e6 100%);
+}
+
 .cell-empty {
   color: var(--cross);
-  font-weight: 700;
+}
+
+.cell-cross {
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 800;
+  transform: translateY(-1px);
+}
+
+.cell-group-top {
+  border-top-width: 2px;
+  border-top-color: var(--grid-strong);
+}
+
+.cell-group-left {
+  border-left-width: 2px;
+  border-left-color: var(--grid-strong);
+}
+
+.cell-group-bottom {
+  border-bottom-width: 2px;
+  border-bottom-color: var(--grid-strong);
+}
+
+.cell-group-right {
+  border-right-width: 2px;
+  border-right-color: var(--grid-strong);
+}
+
+@keyframes solved-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

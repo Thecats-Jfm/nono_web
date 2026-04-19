@@ -160,6 +160,7 @@ export default function App() {
       <PuzzleBoard
         puzzle={puzzle}
         playerBoard={playerBoard}
+        solved={solved}
         onCellMouseDown={handleCellMouseDown}
       />
     </main>

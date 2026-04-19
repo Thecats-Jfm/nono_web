@@ -16,7 +16,6 @@ export default function PuzzleMeta({ puzzle }) {
       <div>solve time: {puzzle.solver.solve_time_ms.toFixed(2)} ms</div>
       <div>nodes: {puzzle.solver.nodes_visited}</div>
       <div>max depth: {puzzle.solver.max_depth}</div>
-      <div>hash: {puzzle.puzzle_hash}</div>
     </section>
   );
 }
