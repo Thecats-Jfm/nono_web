@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import ControlPanel from "./components/ControlPanel.jsx";
 import PuzzleBoard from "./components/PuzzleBoard.jsx";
 import PuzzleMeta from "./components/PuzzleMeta.jsx";
 import { createEmptyPlayerBoard, isSolved, toggleEmptyState, toggleFilledState } from "./lib/board.js";
-import { generatePuzzle } from "./lib/api.js";
+import { getGeneratePuzzleJob, startGeneratePuzzle } from "./lib/api.js";
 
 function buildRandomSeed() {
   return String(Math.floor(Math.random() * 1_000_000_000));
@@ -18,6 +18,21 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [solved, setSolved] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(null);
+  const activeJobIdRef = useRef(null);
+
+  async function pollGenerationJob(jobId) {
+    while (activeJobIdRef.current === jobId) {
+      const job = await getGeneratePuzzleJob(jobId);
+      if (job.status === "queued" || job.status === "running") {
+        setGenerationProgress(job);
+        await new Promise((resolve) => window.setTimeout(resolve, 250));
+        continue;
+      }
+      return job;
+    }
+    return null;
+  }
 
   async function handleGenerate() {
     const parsedSeed = Number(seed);
@@ -29,14 +44,42 @@ export default function App() {
     setLoading(true);
     setError("");
     setSolved(false);
+    setPuzzle(null);
+    setPlayerBoard(null);
+    setGenerationProgress({
+      status: "queued",
+      input_seed: parsedSeed,
+      size,
+      attempts_tried: 0,
+      current_seed: null,
+      elapsed_ms: 0,
+      message: "开始生成谜题...",
+    });
 
     try {
-      const nextPuzzle = await generatePuzzle(parsedSeed, size);
+      const job = await startGeneratePuzzle(parsedSeed, size);
+      activeJobIdRef.current = job.job_id;
+      const nextPuzzle = await pollGenerationJob(job.job_id);
+      if (!nextPuzzle) {
+        return;
+      }
+      if (nextPuzzle.status === "timeout") {
+        setPuzzle(null);
+        setPlayerBoard(null);
+        setGenerationProgress(null);
+        setError(nextPuzzle.message);
+        return;
+      }
       setPuzzle(nextPuzzle);
       setPlayerBoard(createEmptyPlayerBoard(nextPuzzle.size));
+      setGenerationProgress(null);
     } catch (nextError) {
+      setPuzzle(null);
+      setPlayerBoard(null);
+      setGenerationProgress(null);
       setError(nextError.message || "生成失败");
     } finally {
+      activeJobIdRef.current = null;
       setLoading(false);
     }
   }
@@ -96,6 +139,20 @@ export default function App() {
       />
 
       <PuzzleMeta puzzle={puzzle} />
+
+      {loading && generationProgress ? (
+        <section className="panel progress">
+          <div>{generationProgress.message}</div>
+          <div>当前尺寸: {generationProgress.size} x {generationProgress.size}</div>
+          <div>已尝试谜题: {generationProgress.attempts_tried}</div>
+          <div>
+            当前 seed:
+            {" "}
+            {generationProgress.current_seed ?? "-"}
+          </div>
+          <div>已用时: {(generationProgress.elapsed_ms / 1000).toFixed(2)} s</div>
+        </section>
+      ) : null}
 
       {error ? <section className="panel error">{error}</section> : null}
       {solved ? <section className="panel success">通关啦，这一题已经完全填对了。</section> : null}

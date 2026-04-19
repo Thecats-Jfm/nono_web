@@ -1,7 +1,9 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field, field_validator
 
 
-ALLOWED_SIZES = (5, 10, 20, 30)
+ALLOWED_SIZES = (5, 10, 15, 20, 30)
 
 
 class GeneratePuzzleRequest(BaseModel):
@@ -25,6 +27,7 @@ class SolverStats(BaseModel):
 
 
 class PuzzleResponse(BaseModel):
+    status: Literal["ok"] = "ok"
     input_seed: int
     resolved_seed: int
     attempt: int
@@ -34,3 +37,29 @@ class PuzzleResponse(BaseModel):
     col_clues: list[list[int]]
     solution: list[list[int]]
     solver: SolverStats
+
+
+class TimeoutResponse(BaseModel):
+    status: Literal["timeout"] = "timeout"
+    input_seed: int
+    size: int
+    timeout_seconds: float
+    attempts_tried: int
+    elapsed_ms: float
+    message: str
+
+
+class GenerationJobStartResponse(BaseModel):
+    job_id: str
+    status: Literal["queued"] = "queued"
+
+
+class GenerationJobProgressResponse(BaseModel):
+    job_id: str
+    status: Literal["queued", "running"]
+    input_seed: int
+    size: int
+    attempts_tried: int
+    current_seed: int | None = None
+    elapsed_ms: float
+    message: str

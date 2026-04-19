@@ -1,5 +1,5 @@
 export default function PuzzleMeta({ puzzle }) {
-  if (!puzzle) {
+  if (!puzzle || puzzle.status === "timeout") {
     return (
       <section className="panel meta">
         <p>输入一个整数 seed，然后生成一题唯一解 nonogram。</p>

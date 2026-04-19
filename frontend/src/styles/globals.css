@@ -137,6 +137,14 @@ select {
   color: #305b2c;
 }
 
+.progress {
+  border-color: #caa97b;
+  color: #6a4c2a;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px 18px;
+}
+
 .board-shell {
   overflow: auto;
   padding-bottom: 10px;

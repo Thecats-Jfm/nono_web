@@ -1,4 +1,6 @@
-from nonogram.solver import generate_line_patterns, solve_nonogram
+import pytest
+
+from nonogram.solver import SolveTimeoutError, generate_line_patterns, solve_nonogram
 
 
 def test_generate_line_patterns_for_single_block() -> None:
@@ -25,3 +27,10 @@ def test_solver_detects_multiple_solutions() -> None:
     result = solve_nonogram(2, row_clues, col_clues)
     assert result.solutions_found >= 2
     assert result.unique is False
+
+
+def test_solver_respects_deadline() -> None:
+    row_clues = [[1], [1]]
+    col_clues = [[1], [1]]
+    with pytest.raises(SolveTimeoutError):
+        solve_nonogram(2, row_clues, col_clues, deadline=0.0)

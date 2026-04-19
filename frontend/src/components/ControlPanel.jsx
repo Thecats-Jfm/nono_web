@@ -27,7 +27,7 @@ export default function ControlPanel({
           value={size}
           onChange={(event) => onSizeChange(Number(event.target.value))}
         >
-          {[5, 10, 20, 30].map((item) => (
+          {[5, 10, 15, 20, 30].map((item) => (
             <option key={item} value={item}>
               {item} x {item}
             </option>

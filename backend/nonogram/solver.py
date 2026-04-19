@@ -9,6 +9,10 @@ Line = tuple[int, ...]
 Clue = tuple[int, ...]
 
 
+class SolveTimeoutError(Exception):
+    """Raised when a single solver run exceeds its deadline."""
+
+
 class SolveResult(NamedTuple):
     unique: bool
     solve_time_ms: float
@@ -96,7 +100,12 @@ def prefix_is_feasible(prefix: Line, clues: Clue, total_length: int) -> bool:
     return dp(0, 0, 0)
 
 
-def solve_nonogram(size: int, row_clues: list[list[int]], col_clues: list[list[int]]) -> SolveResult:
+def solve_nonogram(
+    size: int,
+    row_clues: list[list[int]],
+    col_clues: list[list[int]],
+    deadline: float | None = None,
+) -> SolveResult:
     row_patterns = [
         generate_line_patterns(size, tuple(clues))
         for clues in row_clues
@@ -110,6 +119,8 @@ def solve_nonogram(size: int, row_clues: list[list[int]], col_clues: list[list[i
 
     def search(row_index: int, column_prefixes: tuple[Line, ...]) -> None:
         nonlocal nodes_visited, max_depth, solutions_found
+        if deadline is not None and time.perf_counter() >= deadline:
+            raise SolveTimeoutError
         if solutions_found >= 2:
             return
         max_depth = max(max_depth, row_index)
